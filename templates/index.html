@@ -36,9 +36,9 @@
             100% { transform: rotate(0deg); }
         }
 
-        #result {
+        #result, #coords, #accuracy {
             font-size: 24px;
-            margin-top: 30px;
+            margin-top: 20px;
         }
 
         #flag {
@@ -74,6 +74,8 @@
     <img id="detective" src="/static/detective.png" alt="Detektiv" />
 
     <div id="result"></div>
+    <div id="coords"></div>
+    <div id="accuracy"></div>
     <div id="flag"></div>
     <div id="info"></div>
 
@@ -83,20 +85,31 @@ function getLocation() {
         // Detektiv anzeigen
         document.getElementById("detective").style.display = "block";
         document.getElementById("result").innerText = "Suche...";
+        document.getElementById("coords").innerText = "";
+        document.getElementById("accuracy").innerText = "";
 
-        navigator.geolocation.getCurrentPosition(sendPosition);
+        navigator.geolocation.getCurrentPosition(sendPosition, showError, { enableHighAccuracy: true });
     } else {
         alert("Geolocation wird nicht unterstützt.");
     }
 }
 
 function sendPosition(position) {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
+
+    // Koordinaten direkt auf der Seite anzeigen
+    document.getElementById("coords").innerText = "Latitude: " + lat + ", Longitude: " + lon;
+    document.getElementById("accuracy").innerText = "Genauigkeit: " + accuracy + " Meter";
+
     fetch("/location", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
-            lat: position.coords.latitude,
-            lon: position.coords.longitude
+            lat: lat,
+            lon: lon,
+            accuracy: accuracy
         })
     })
     .then(response => response.json())
@@ -111,16 +124,34 @@ function sendPosition(position) {
         let stateFile = state.toLowerCase().replace("ä","ae").replace("ö","oe").replace("ü","ue").replace("ß","ss").replace(/ /g,"_");
         document.getElementById("flag").innerHTML = `<img src="/static/${stateFile}.png" alt="${state} Flagge" width="200">`;
 
-        // Besonderheiten (Beispiel, kann erweitert werden)
+        // Besonderheiten
         const specialInfo = {
             "Nordrhein-Westfalen": "NRW: Land der Industrie, Karneval und Rheinmetropolen.",
             "Hessen": "Hessen: Bankenstadt Frankfurt und grüner Taunus.",
             "Bayern": "Bayern: Berge, Bier und Tradition.",
-            // hier weitere Bundesländer hinzufügen
+            // weitere Bundesländer hinzufügen
         };
 
         document.getElementById("info").innerText = specialInfo[state] || "Interessantes Bundesland!";
     });
+}
+
+function showError(error) {
+    document.getElementById("detective").style.display = "none";
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            alert("Standortzugriff verweigert.");
+            break;
+        case error.POSITION_UNAVAILABLE:
+            alert("Standort nicht verfügbar.");
+            break;
+        case error.TIMEOUT:
+            alert("Zeitüberschreitung beim Abrufen des Standorts.");
+            break;
+        default:
+            alert("Unbekannter Fehler.");
+            break;
+    }
 }
 </script>
 
