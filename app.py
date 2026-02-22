@@ -1,11 +1,17 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import os
-from datetime import datetime
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-LOG_FILE = "coords.log"  # Datei für alle Koordinaten
 
 @app.route("/")
 def home():
@@ -14,25 +20,23 @@ def home():
 @app.route("/location", methods=["POST"])
 def location():
     data = request.get_json(silent=True)
-    print("RAW JSON:", data)
+    logger.info("RAW JSON: %s", data)
 
-    if not data:
-        return jsonify({"state": "Unbekannt"}), 400
+    lat = (data or {}).get("lat")
+    lon = (data or {}).get("lon")
+    accuracy = (data or {}).get("accuracy")
 
-    lat = data.get("lat")
-    lon = data.get("lon")
-    accuracy = data.get("accuracy")
+    logger.info("🔥 COORDS lat=%s lon=%s acc=%s", lat, lon, accuracy)
+    sys.stdout.flush()
 
-    print("Latitude:", lat)
-    print("Longitude:", lon)
-    print("Accuracy:", accuracy)
-
-    # ... (dein Bundesland-Kram)
+    # Bundesland via OSM
     url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
     response = requests.get(url, headers={"User-Agent": "gps-challenge"})
     result = response.json()
     state = result.get("address", {}).get("state", "Unbekannt")
-    print("Bundesland:", state)
+
+    logger.info("Bundesland: %s", state)
+    sys.stdout.flush()
 
     return jsonify({"state": state})
 
