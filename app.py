@@ -21,23 +21,24 @@ def home():
 def location():
     data = request.get_json(silent=True)
 
-    logger.info("RAW JSON: %s", data)
     lat = (data or {}).get("lat")
     lon = (data or {}).get("lon")
     accuracy = (data or {}).get("accuracy")
 
-    logger.info("🔥 COORDS lat=%s lon=%s acc=%s", lat, lon, accuracy)
+    # Render zeigt ERROR extrem zuverlässig
+    logger.error("🔥🔥🔥 COORDS lat=%s lon=%s acc=%s RAW=%s", lat, lon, accuracy, data)
     sys.stderr.flush()
 
+    # Bundesland (optional)
     url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}"
     response = requests.get(url, headers={"User-Agent": "gps-challenge"})
     result = response.json()
     state = result.get("address", {}).get("state", "Unbekannt")
 
-    logger.info("Bundesland: %s", state)
+    logger.error("🔥🔥🔥 STATE=%s", state)
     sys.stderr.flush()
 
-    return jsonify({"state": state})
+    return jsonify({"state": state, "debug": "server-logged-coords"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
